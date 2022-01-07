@@ -1,58 +1,70 @@
 //Components have structures and API's and reusable. React state cannot be modified directly
+// Think of useState as a short term memory for the app
 
 import React, { useState, useEffect } from "react";
 import "./App.css";
-import TodoForm from "./components/TodoForm";
-import TodoList from "./components/TodoList";
-
-const LOCAL_STORAGE_KEY = "react-todo-list-todos";
+import { Button, FormControl, InputLabel, Input } from "@mui/material";
+import AddTaskIcon from "@mui/icons-material/AddTask";
+import Todo from "./components/Todo";
+import { db } from "./firebase";
 
 function App() {
   const [todos, setTodos] = useState([]);
 
+  //when the app loads, we need to listen to the database and fetch mew todos as they get added/removed
+
   useEffect(() => {
-    const storageTodos = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY));
-    if (storageTodos) {
-      setTodos(storageTodos);
-    }
+    //this code fires when the app.js loads
+    db.collection("todos").onSnapShot((snapshot) => {
+      setTodos(snapshot.docs.map((doc) => doc.data().todo));
+    });
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(todos));
-  }, [todos]);
+  const [input, setInput] = useState("");
 
-  function addTodo(todo) {
-    setTodos([todo, ...todos]);
-  }
+  const addTodo = (e) => {
+    //this fires up when we click the button
+    e.preventDefault();
+    setTodos([...todos, input]);
+    setInput(""); // clear up the input after hitting submit
+  };
 
-  function toggleComplete(id) {
-    setTodos(
-      todos.map((todo) => {
-        if (todo.id === id) {
-          return {
-            ...todo,
-            completed: !todo.completed,
-          };
-        }
-        return todo;
-      })
-    );
-  }
-  function removoTodo(id) {
-    setTodos(todos.filter((todo) => todo.id !== id));
-  }
   return (
     <div className="App">
-      <header className="App-header">
-        {" "}
-        <h1> To Do List </h1>
-        <TodoForm addTodo={addTodo} />
-        <TodoList
-          todos={todos}
-          toggleComplete={toggleComplete}
-          removeTodo={removoTodo}
-        />{" "}
-      </header>
+      <h1>Creating a To do List </h1>
+      <form>
+        <FormControl>
+          {/* material Icons in MUI*/}
+
+          <InputLabel>
+            {" "}
+            <AddTaskIcon />
+            Add To do here
+          </InputLabel>
+          <Input
+            type="text"
+            placeholder="Enter to do list"
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value);
+            }}
+          />
+        </FormControl>
+
+        <Button
+          variant="contained"
+          type="submit"
+          onClick={addTodo}
+          disabled={!input}
+        >
+          Add Todo
+        </Button>
+      </form>
+      <ul>
+        {todos.map((todo) => (
+          <Todo todo={todo} />
+        ))}
+      </ul>
     </div>
   );
 }
